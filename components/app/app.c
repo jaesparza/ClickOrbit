@@ -8,12 +8,43 @@
 #include "ui.h"
 #include "knob.h"
 #include "lock_combination.h"
+#include "backlight.h"
+#include "esp_timer.h"
+#include "lvgl.h"
 #include "esp_log.h"
 #include <stdio.h>
 
 static int s_last_string;
 static bool s_unlocked;
 static lock_combination_t s_combination;
+#define IDLE_DIM_US (5LL * 60 * 1000000)
+#define DIM_LEVEL_PCT 20
+static int64_t s_last_activity_us;
+static bool s_dimmed;
+
+static void note_activity(void)
+{
+    s_last_activity_us = esp_timer_get_time();
+    if (s_dimmed) {
+        backlight_set_percent(80);
+        s_dimmed = false;
+    }
+}
+
+static void idle_dim_tick(lv_timer_t *timer)
+{
+    (void)timer;
+    if (!s_dimmed && esp_timer_get_time() - s_last_activity_us >= IDLE_DIM_US) {
+        backlight_set_percent(DIM_LEVEL_PCT);
+        s_dimmed = true;
+    }
+}
+
+static void on_screen_activity(lv_event_t *event)
+{
+    (void)event;
+    note_activity();
+}
 bool app_is_unlocked(void) { return s_unlocked; }
 static void lock_device(void)
 {
@@ -25,6 +56,7 @@ static void lock_device(void)
 }
 static void on_button(lv_event_t *e)
 {
+    note_activity();
     if (!s_unlocked) return;
     int number = (int)(intptr_t)lv_event_get_user_data(e);
     if (pomo_view_visible()) {
@@ -51,6 +83,7 @@ static void on_button(lv_event_t *e)
 
 static void on_knob_step(int direction)
 {
+    if (direction) note_activity();
     if (!direction) {
         s_combination = (lock_combination_t){0};
         if (!s_unlocked) app_screen_set_lock_ticks(0);
@@ -103,6 +136,9 @@ void app_init(void)
 {
     if (!ui_lock(1000)) { ESP_LOGE("app", "no LVGL lock"); return; }
     app_screen_build(on_button);
+    lv_obj_add_event_cb(lv_screen_active(), on_screen_activity, LV_EVENT_PRESSED, NULL);
+    s_last_activity_us = esp_timer_get_time();
+    lv_timer_create(idle_dim_tick, 1000, NULL);
     ui_unlock();
     knob_init(on_knob_step);
     ESP_LOGI("app", "ready: Password + Jiggler + Password 2; ring scrolls");
