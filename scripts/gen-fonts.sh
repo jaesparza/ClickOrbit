@@ -9,3 +9,10 @@ npx --yes lv_font_conv --font design/fonts/Muli-SemiBold.ttf \
   --range 0x20-0x7E,0x00C0-0x00FF \
   --force-fast-kern-format --no-compress \
   -o components/ui/fonts/font_muli_28.c
+
+npx --yes lv_font_conv --font design/fonts/JetBrainsMono-Regular.ttf \
+  --size 64 --bpp 4 --format lvgl --symbols '0123456789:' \
+  --no-compress -o components/ui/fonts/font_dial_64.c
+npx --yes lv_font_conv --font design/fonts/Muli-SemiBold.ttf \
+  --size 20 --bpp 4 --format lvgl --range 0x20-0x7E \
+  --no-compress -o components/ui/fonts/font_muli_20.c

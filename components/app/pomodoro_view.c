@@ -1,39 +1,16 @@
 #include "pomodoro_view.h"
 #include "pomodoro.h"
-#include "fonts.h"
-#include "tokens.h"
+#include "dial_style.h"
 #include "haptic.h"
 #include "esp_timer.h"
 
 static pomodoro_t session;
 static lv_obj_t *panel, *arc, *phase, *clock_label, *hint;
-static lv_obj_t *toggle, *menu, *reset;
+static lv_obj_t *toggle, *menu, *reset, *toggle_text, *round_marks[4];
 static bool visible;
 static int last_seconds = -1;
 
 static int64_t now_ms(void) { return esp_timer_get_time() / 1000; }
-
-static lv_obj_t *label(lv_obj_t *parent, int y, const lv_font_t *font)
-{
-    lv_obj_t *obj = lv_label_create(parent);
-    lv_obj_set_style_text_font(obj, font, 0);
-    lv_obj_set_style_text_color(obj, lv_color_hex(HUD_INK), 0);
-    lv_obj_align(obj, LV_ALIGN_CENTER, 0, y);
-    return obj;
-}
-
-static lv_obj_t *button(int y, int width, int id, const char *name, lv_event_cb_t cb)
-{
-    lv_obj_t *btn = lv_button_create(panel);
-    lv_obj_set_size(btn, width, 46);
-    lv_obj_align(btn, LV_ALIGN_CENTER, 0, y);
-    lv_obj_set_style_radius(btn, 23, 0);
-    lv_obj_set_style_pad_all(btn, 0, 0);
-    lv_obj_set_style_bg_color(btn, lv_color_hex(HUD_KEY_PANEL), 0);
-    lv_obj_add_event_cb(btn, cb, LV_EVENT_SHORT_CLICKED, (void *)(intptr_t)id);
-    lv_label_set_text(label(btn, 0, &font_muli_28), name);
-    return btn;
-}
 
 static void render(bool controls)
 {
@@ -43,11 +20,14 @@ static void render(bool controls)
         const char *name = session.phase == POMO_FOCUS ? "Focus" :
                            session.phase == POMO_BREAK ? "Short break" : "Long break";
         unsigned round = (session.completed + (session.phase == POMO_FOCUS ? 0 : 3)) % 4 + 1;
-        lv_label_set_text_fmt(phase, "%s  %u/4", name, round);
-        lv_color_t color = lv_color_hex(session.phase == POMO_FOCUS ? HUD_KEY_ORANGE : HUD_GREEN);
+        lv_label_set_text(phase, name);
+        lv_color_t color = lv_color_hex(session.phase == POMO_FOCUS ? DIAL_ORANGE : DIAL_BREAK);
+        lv_obj_set_style_text_color(phase, color, 0);
         lv_obj_set_style_arc_color(arc, color, LV_PART_INDICATOR);
         lv_obj_set_style_bg_color(toggle, color, 0);
-        lv_label_set_text(lv_obj_get_child(toggle, 0), session.mode == POMO_RUNNING ? "Pause" :
+        for (unsigned i = 0; i < 4; ++i)
+            lv_obj_set_style_bg_color(round_marks[i], i < round ? color : lv_color_hex(DIAL_TRACK), 0);
+        lv_label_set_text(toggle_text, session.mode == POMO_RUNNING ? "Pause" :
                           session.mode == POMO_PAUSED ? "Resume" : "Start");
         lv_obj_set_hidden(reset, session.mode != POMO_PAUSED);
         lv_obj_set_hidden(hint, session.mode != POMO_READY);
@@ -81,33 +61,34 @@ void pomo_view_preview_jingle(void)
 void pomo_view_build(lv_obj_t *parent, lv_event_cb_t cb)
 {
     pomo_init(&session);
-    panel = lv_obj_create(parent);
-    lv_obj_remove_style_all(panel);
-    lv_obj_set_size(panel, HUD_PANEL_DIA, HUD_PANEL_DIA);
-    lv_obj_center(panel);
-    lv_obj_set_scrollable(panel, false);
+    panel = dial_panel(parent);
     arc = lv_arc_create(panel);
-    lv_obj_set_size(arc, 318, 318);
+    lv_obj_set_size(arc, 334, 334);
     lv_obj_center(arc);
-    lv_arc_set_rotation(arc, 100);
-    lv_arc_set_bg_angles(arc, 0, 340);
+    lv_arc_set_rotation(arc, 135);
+    lv_arc_set_bg_angles(arc, 0, 270);
     lv_arc_set_range(arc, 0, 360);
     lv_obj_set_clickable(arc, false);
     lv_obj_remove_style(arc, NULL, LV_PART_KNOB);
-    lv_obj_set_style_arc_color(arc, lv_color_hex(HUD_OFF), LV_PART_MAIN);
-    menu = button(-104, 110, POMO_MENU, "Menu", cb);
-    phase = label(panel, -51, &font_muli_28);
-    clock_label = label(panel, -4, &font_muli_28);
+    lv_obj_set_style_arc_width(arc, 5, LV_PART_MAIN);
+    lv_obj_set_style_arc_width(arc, 5, LV_PART_INDICATOR);
+    lv_obj_set_style_arc_color(arc, lv_color_hex(DIAL_TRACK), LV_PART_MAIN);
+
+    menu = dial_button(panel, 98, 44, 0, -110, DIAL_TILE, POMO_MENU, cb);
+    dial_label(menu, LV_SYMBOL_LEFT, LV_FONT_DEFAULT, DIAL_MUTED, -28, 0);
+    dial_label(menu, "Menu", &font_muli_20, DIAL_PAPER, 9, 0);
+    phase = dial_label(panel, "", &font_muli_20, DIAL_ORANGE, 0, -57);
+    lv_obj_set_style_text_letter_space(phase, 2, 0);
+    clock_label = dial_label(panel, "25:00", &font_dial_64, DIAL_PAPER, 0, -6);
     lv_obj_set_clickable(clock_label, true);
     lv_obj_add_event_cb(clock_label, preview_jingle, LV_EVENT_LONG_PRESSED, NULL);
-    lv_obj_set_style_transform_scale(clock_label, 400, 0);
-    lv_obj_set_style_transform_pivot_x(clock_label, LV_PCT(50), 0);
-    lv_obj_set_style_transform_pivot_y(clock_label, LV_PCT(50), 0);
-    toggle = button(58, 148, POMO_TOGGLE, "Start", cb);
-    lv_obj_set_style_text_color(lv_obj_get_child(toggle, 0), lv_color_hex(HUD_KEY_BG), 0);
-    hint = label(panel, 108, LV_FONT_DEFAULT);
-    lv_label_set_text(hint, "Turn to set minutes");
-    reset = button(111, 110, POMO_RESET, "Reset", cb);
+    for (int i = 0; i < 4; i++)
+        round_marks[i] = dial_mark(panel, 17, 5, 23 * i - 34, 43, DIAL_TRACK, 2);
+    toggle = dial_button(panel, 146, 48, 0, 86, DIAL_ORANGE, POMO_TOGGLE, cb);
+    toggle_text = dial_label(toggle, "Start", &font_muli_28, DIAL_BG, 0, 0);
+    hint = dial_label(panel, "Turn to set minutes", LV_FONT_DEFAULT, DIAL_MUTED, 0, 132);
+    reset = dial_button(panel, 88, 44, 0, 135, DIAL_TILE, POMO_RESET, cb);
+    dial_label(reset, "Reset", &font_muli_20, DIAL_PAPER, 0, 0);
     pomo_view_show(false);
     lv_timer_create(tick, 250, NULL);
 }
