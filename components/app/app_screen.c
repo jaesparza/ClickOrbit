@@ -63,7 +63,7 @@ void app_screen_build(lv_event_cb_t cb)
     lv_obj_t *jiggler = tile(2, 0, 1, "Jiggler off", NULL, cb);
     switch_track = dial_mark(jiggler, 32, 14, 0, -14, DIAL_CORAL, 7);
     switch_thumb = dial_mark(switch_track, 10, 10, -8, 0, DIAL_BG, 5);
-    tile(1, 1, -1, "Ambu", LV_SYMBOL_KEYBOARD, cb);
+    tile(1, 1, -1, "Work", LV_SYMBOL_KEYBOARD, cb);
     tile(3, 1, 1, "Home", LV_SYMBOL_HOME, cb);
     build_lock(root);
     pomo_view_build(root, cb);
