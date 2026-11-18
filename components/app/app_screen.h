@@ -8,3 +8,4 @@ void app_screen_set_locked(bool locked);
 void app_screen_show_pomodoro(bool show);
 void app_screen_set_lock_ticks(unsigned ticks);
 lv_obj_t *app_screen_string_button(int number);
+void app_screen_shortcut_feedback(int number, bool queued);

@@ -100,7 +100,9 @@ static bool type_text(const char *text)
         uint8_t keys[6] = {0};
         if (!keyboard_ascii(*text, &modifier, &key)) return false;
         keys[0] = key;
-        if (atomic_load(&s_caps_lock)) modifier ^= KEYBOARD_MODIFIER_LEFTSHIFT;
+        if (key >= HID_KEY_A && key <= HID_KEY_Z && atomic_load(&s_caps_lock)) {
+            modifier ^= KEYBOARD_MODIFIER_LEFTSHIFT;
+        }
         if (!send_report(modifier, keys)) {
             send_report(0, NULL); // best effort release after a failed press
             return false;

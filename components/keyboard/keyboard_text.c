@@ -17,18 +17,21 @@ bool keyboard_ascii(char c, uint8_t *modifier, uint8_t *key)
         *key = (uint8_t)(0x04 + c - 'A');
     } else if (c >= '1' && c <= '9') *key = (uint8_t)(0x1E + c - '1');
     else if (c == '0') *key = 0x27;
-    else if (c >= '!' && c <= ')') {
-        static const uint8_t shifted_digit_keys[] = {0x1E,0x1F,0x20,0x21,0x22,0x23,0x24,0x25,0x26,0x27};
-        *modifier = 0x02;
-        *key = shifted_digit_keys[c - '!'];
-    } else {
+    else {
         switch (c) {
         case ' ': *key = 0x2C; break;
         case '\n': *key = 0x28; break;
         case '\t': *key = 0x2B; break;
+        case '!': *modifier = 0x02; *key = 0x1E; break;
         case '@': *modifier = 0x02; *key = 0x1F; break;
+        case '#': *modifier = 0x02; *key = 0x20; break;
+        case '$': *modifier = 0x02; *key = 0x21; break;
+        case '%': *modifier = 0x02; *key = 0x22; break;
         case '^': *modifier = 0x02; *key = 0x23; break;
+        case '&': *modifier = 0x02; *key = 0x24; break;
         case '*': *modifier = 0x02; *key = 0x25; break;
+        case '(': *modifier = 0x02; *key = 0x26; break;
+        case ')': *modifier = 0x02; *key = 0x27; break;
         case '-': *key = 0x2D; break;
         case '_': *modifier = 0x02; *key = 0x2D; break;
         case '=': *key = 0x2E; break;

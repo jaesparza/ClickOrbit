@@ -41,7 +41,9 @@ static void on_button(lv_event_t *e)
         keyboard_set_jiggler(!keyboard_jiggler_enabled());
         app_screen_set_jiggler(keyboard_jiggler_enabled());
     } else if (number == 1 || number == 3) {
-        if (!keyboard_queue_direction(number == 1 ? 1 : -1)) {
+        bool queued = keyboard_queue_direction(number == 1 ? 1 : -1);
+        app_screen_shortcut_feedback(number, queued);
+        if (!queued) {
             ESP_LOGW("app", "keyboard unavailable or queue full");
             return;
         }
@@ -56,6 +58,7 @@ static void on_knob_step(int direction)
         if (!s_unlocked) app_screen_set_lock_ticks(0);
         return;
     }
+    lv_display_trigger_activity(NULL);
     if (!s_unlocked) {
         if (lock_combination_step(&s_combination, direction)) {
             s_unlocked = true;

@@ -1,6 +1,7 @@
 // testctl.c — reads lines from the USB CDC driver on its own task and injects events into
 // the app under the LVGL lock, so the app's real handlers run exactly as they do for hardware input.
 #include "testctl.h"
+#include <limits.h>
 #include "app.h"
 #include "keyboard.h"
 #include "ui.h"
@@ -116,7 +117,7 @@ static void handle(char *line)
     if (!strncmp(line, "button ", 7)) {
         char *end;
         long id = strtol(line + 7, &end, 10);
-        if (*end == 0 && id >= 1 && id <= 16) button = (int)id;
+        if (*end == 0 && id >= 1 && id <= INT_MAX) button = (int)id;
     }
     bool vertical = !strcmp(line, "swipe up") || !strcmp(line, "swipe down");
     bool swipe = !strcmp(line, "swipe left") || !strcmp(line, "swipe right");
