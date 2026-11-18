@@ -1,6 +1,7 @@
 #include "keyboard.h"
 #include "keyboard_text.h"
 #include "keyboard_usb.h"
+#include "keyboard_ble.h"
 #include "jiggler_schedule.h"
 #include "esp_timer.h"
 #include "tinyusb.h"
@@ -40,6 +41,11 @@ int keyboard_wheel_total(void) { return atomic_load(&s_wheel_total); }
 
 static bool mouse_report(int8_t x, int8_t wheel)
 {
+    if (keyboard_ble_connected()) {
+        bool sent = keyboard_ble_send_mouse(x, wheel);
+        if (sent) vTaskDelay(pdMS_TO_TICKS(20));
+        return sent;
+    }
     for (int i = 0; i < 100; ++i) {
         if (!tud_mounted() || tud_suspended()) return false;
         if (tud_hid_n_ready(1) && tud_hid_n_mouse_report(1, 0, 0, x, 0, wheel, 0)) {
@@ -54,7 +60,7 @@ static bool mouse_report(int8_t x, int8_t wheel)
 static void jiggle(void)
 {
     if (mouse_report(1, 0) && mouse_report(-1, 0)) atomic_fetch_add(&s_mouse_pairs, 1);
-    else ESP_LOGW(TAG, "mouse movement failed: USB unavailable");
+    else ESP_LOGW(TAG, "mouse movement failed: no active HID host");
 }
 
 bool keyboard_test_jiggle(void)
@@ -71,6 +77,11 @@ void keyboard_set_leds(uint8_t leds)
 // Bounded waits run only on the worker, never on the LVGL task.
 static bool send_report(uint8_t modifier, const uint8_t *keys)
 {
+    if (keyboard_ble_connected()) {
+        bool sent = keyboard_ble_send_keyboard(modifier, keys);
+        if (sent) vTaskDelay(pdMS_TO_TICKS(20));
+        return sent;
+    }
     for (int i = 0; i < 100; ++i) {
         if (!tud_mounted()) return false;
         if (tud_hid_ready() && tud_hid_keyboard_report(0, modifier, keys)) {
@@ -85,8 +96,10 @@ static bool send_report(uint8_t modifier, const uint8_t *keys)
 static bool type_text(const char *text)
 {
     for (; *text; ++text) {
-        uint8_t modifier, keys[6] = {0};
-        if (!keyboard_letter(*text, &modifier, &keys[0])) return false;
+        uint8_t modifier, key;
+        uint8_t keys[6] = {0};
+        if (!keyboard_ascii(*text, &modifier, &key)) return false;
+        keys[0] = key;
         if (atomic_load(&s_caps_lock)) modifier ^= KEYBOARD_MODIFIER_LEFTSHIFT;
         if (!send_report(modifier, keys)) {
             send_report(0, NULL); // best effort release after a failed press
@@ -133,21 +146,22 @@ void keyboard_init(void)
     };
     ESP_ERROR_CHECK(tusb_cdc_acm_init(&cdc));
     ESP_ERROR_CHECK(esp_tusb_init_console(TINYUSB_CDC_ACM_0));
+    if (!keyboard_ble_init()) ESP_LOGW(TAG, "BLE HID unavailable; USB HID remains active");
     BaseType_t started = xTaskCreate(keyboard_task, "keyboard", 4096, NULL, 3, NULL);
     ESP_ERROR_CHECK(started == pdPASS ? ESP_OK : ESP_ERR_NO_MEM);
-    ESP_LOGI(TAG, "USB keyboard + mouse + CDC ready");
+    ESP_LOGI(TAG, "USB and BLE keyboard + mouse ready");
 }
 
 bool keyboard_queue_direction(int direction)
 {
-    if (!s_queue || !direction || !tud_mounted() || tud_suspended()) return false;
+    if (!s_queue || !direction || (!keyboard_ble_connected() && (!tud_mounted() || tud_suspended()))) return false;
     int event = direction > 0 ? 1 : -1;
     return xQueueSend(s_queue, &event, 0) == pdTRUE;
 }
 
 bool keyboard_queue_scroll(int direction)
 {
-    if (!s_queue || !direction || !tud_mounted() || tud_suspended()) return false;
+    if (!s_queue || !direction || (!keyboard_ble_connected() && (!tud_mounted() || tud_suspended()))) return false;
     int event = direction > 0 ? 2 : -2;
     return xQueueSend(s_queue, &event, 0) == pdTRUE;
 }

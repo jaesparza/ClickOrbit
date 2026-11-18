@@ -5,7 +5,7 @@ My Knob is firmware for the Guition JC3636K518C K518, an ESP32-S3 device with a 
 ## Features
 
 - **Combination lock.** On boot, the screen shows a lock and a progress count. Turn the encoder five detents left, then five right to open the menu. An incorrect turn resets the sequence.
-- **USB keyboard.** Home provides two text buttons, **Ambu** and **Home**, which send compile-time strings over USB HID. The current demo strings are `Hello` and `World`.
+- **Keyboard and mouse.** Home provides two text buttons, **Ambu** and **Home**, which send compile-time strings (`Hello` and `World`) as keyboard input over USB or BLE. On Bluetooth, pair the ESP32-S3 HID peripheral named **myAssistant**. The mouse jiggler and ring scrolling use that connection too. The board's separate audio sidecar may also appear as **TAIJI_KNOB_AUDIO**; it is not the HID peripheral.
 - **Mouse controls.** Turn the encoder to scroll. The **Jiggler** button enables a small horizontal mouse movement every five minutes.
 - **Jiggler interval.** Configuration offers 1, 5, 10, and 30 minute intervals, plus a clearly labeled two-second test mode. The selected interval is saved across reboots. Changing it restarts the wait until the next movement.
 - **Pomodoro timer.** Set a focus duration from 1 to 60 minutes with the encoder, then start or pause it by touch. It schedules five-minute breaks and a 15-minute break after every fourth focus session. Breaks can be skipped. A focus session counts as complete only after the full timer elapses.
@@ -20,7 +20,7 @@ My Knob is firmware for the Guition JC3636K518C K518, an ESP32-S3 device with a 
 |---|---|---|
 | Locked | Five encoder detents left, then five right | Unlock the menu |
 | Home | Tap **Pomodoro** | Open the timer |
-| Home | Tap **Ambu** or **Home** | Send the associated demo string over USB keyboard |
+| Home | Tap **Ambu** or **Home** | Send the associated demo string over the active USB or BLE keyboard |
 | Home | Tap **Jiggler** | Toggle five-minute mouse movement |
 | Home | Swipe up | Open Configuration |
 | Configuration | Tap **Office mode** | Toggle silent clicks and quieter alerts |
