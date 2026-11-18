@@ -9,6 +9,8 @@ static const char *TAG = "haptic";
 
 // DRV2605L registers (TI SLOS854).
 #define EFFECT_STRONG_CLICK 1
+#define EFFECT_ALERT_1S 16
+#define WAIT_400_MS (0x80 | 40)  // waveform sequencer delay, in 10 ms units
 #define REG_MODE      0x01   // 0x00 = internal trigger, out of standby
 #define REG_LIBRARY   0x03   // 6 = LRA library
 #define REG_WAVESEQ1  0x04
@@ -67,10 +69,26 @@ void haptic_play(uint8_t effect)
 
 void haptic_click(void) { haptic_play(EFFECT_STRONG_CLICK); }
 
+void haptic_timer_alarm(void)
+{
+    if (!s_dev) return;
+    // Write consecutive sequencer slots. The driver plays the pattern autonomously.
+    const uint8_t sequence[] = {REG_WAVESEQ1, EFFECT_ALERT_1S, WAIT_400_MS,
+                                EFFECT_ALERT_1S, WAIT_400_MS, EFFECT_ALERT_1S, 0};
+    if (reg_write(REG_GO, 0) == ESP_OK &&
+        i2c_master_transmit(s_dev, sequence, sizeof(sequence), I2C_TMO_MS) == ESP_OK &&
+        reg_write(REG_GO, 1) == ESP_OK) {
+        ESP_LOGI(TAG, "timer alarm started");
+    } else {
+        ESP_LOGW(TAG, "timer alarm trigger failed");
+    }
+}
+
 #else  // !BOARD_HAS_HAPTIC
 
 void haptic_init(i2c_master_bus_handle_t bus) { (void)bus; ESP_LOGI(TAG, "board has no haptic driver"); }
 void haptic_play(uint8_t effect) { (void)effect; }
 void haptic_click(void) {}
+void haptic_timer_alarm(void) {}
 
 #endif

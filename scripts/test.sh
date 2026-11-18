@@ -59,6 +59,7 @@ run_suite test_keyboard_text \
   -I"$ROOT/components/keyboard"
 
 echo "── board pin lint ──────────────────────────────────────────"
+run_suite test_pomodoro "$HOST/test_pomodoro.c" "$ROOT/components/app/pomodoro.c" -I"$ROOT/components/app"
 run_suite test_lock_combination \
   "$HOST/test_lock_combination.c" \
   "$ROOT/components/app/lock_combination.c" \

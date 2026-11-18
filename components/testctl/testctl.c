@@ -113,8 +113,7 @@ static void handle(char *line)
     if (!strcmp(line, "state")) { reply_state(); return; }
 
     if (!strcmp(line, "tap") || !strcmp(line, "hold") || !strcmp(line, "reset") ||
-        !strncmp(line, "knob ", 5) || !strcmp(line, "button 1") || !strcmp(line, "button 2") ||
-        !strcmp(line, "button 3") || !strcmp(line, "button 4")) {
+        !strncmp(line, "knob ", 5) || (!strncmp(line, "button ", 7) && strlen(line) == 8 && line[7] >= '1' && line[7] <= '8')) {
         if (!ui_lock(LOCK_MS)) { printf("> error lvgl lock\n"); fflush(stdout); return; }
         if (line[0] == 'b')      app_inject_button(line[7] - '0');
         else if (line[0] == 't') app_inject_tap();

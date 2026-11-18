@@ -1,6 +1,7 @@
 // Touch-only controls. Actual USB reports run on the keyboard worker task.
 #include "app.h"
 #include "app_screen.h"
+#include "pomodoro_view.h"
 #include "keyboard.h"
 #include "haptic.h"
 #include "ui.h"
@@ -25,12 +26,20 @@ static void on_button(lv_event_t *e)
 {
     if (!s_unlocked) return;
     int number = (int)(intptr_t)lv_event_get_user_data(e);
-    if (number == 4) {
+    if (pomo_view_visible()) {
+        if (number == POMO_TOGGLE) pomo_view_toggle();
+        else if (number == POMO_MENU) app_screen_show_pomodoro(false);
+        else if (number == POMO_RESET) pomo_view_restart();
+        return;
+    }
+    if (number == POMO_OPEN) {
+        app_screen_show_pomodoro(true);
+    } else if (number == 4) {
         lock_device();
     } else if (number == 2) {
         keyboard_set_jiggler(!keyboard_jiggler_enabled());
         app_screen_set_jiggler(keyboard_jiggler_enabled());
-    } else {
+    } else if (number == 1 || number == 3) {
         if (!keyboard_queue_direction(number == 1 ? 1 : -1)) {
             ESP_LOGW("app", "keyboard unavailable or queue full");
             return;
@@ -56,6 +65,10 @@ static void on_knob_step(int direction)
             app_screen_set_lock_ticks(s_combination.progress);
         }
         return; // unlocking detents must never scroll the host
+    }
+    if (pomo_view_visible()) {
+        pomo_view_turn(direction);
+        return;
     }
     if (!keyboard_queue_scroll(direction)) ESP_LOGW("app", "mouse unavailable or queue full");
 }

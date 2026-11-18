@@ -15,3 +15,6 @@ void haptic_play(uint8_t effect);
 
 // The one cue most UIs need: a short strong click (library effect 1).
 void haptic_click(void);
+
+// Three one-second alert pulses separated by short rests.
+void haptic_timer_alarm(void);

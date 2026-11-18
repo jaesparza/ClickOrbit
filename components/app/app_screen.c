@@ -2,15 +2,18 @@
 #include "app_screen.h"
 #include "tokens.h"
 #include "fonts.h"
+#include "pomodoro_view.h"
 
-static lv_obj_t *s_buttons[4], *s_jiggler_label;
+static lv_obj_t *s_buttons[5], *s_jiggler_label;
 static lv_obj_t *s_menu, *s_locked_label;
 static void make_button(lv_obj_t *scr, int index, int row, lv_event_cb_t callback)
 {
     lv_obj_t *button = lv_button_create(scr);
     s_buttons[index] = button;
-    lv_obj_set_size(button, 210, 54);
-    lv_obj_align(button, LV_ALIGN_CENTER, 0, (2 * row - 3) * 33);
+    int width = index == 3 ? 80 : index == 4 ? 146 : 210;
+    int x = index == 3 ? -76 : index == 4 ? 43 : 0;
+    lv_obj_set_size(button, width, 54);
+    lv_obj_align(button, LV_ALIGN_CENTER, x, (2 * row - 3) * 33);
     lv_obj_set_style_pad_all(button, 0, 0);
     lv_obj_set_style_radius(button, 20, 0);
     lv_obj_set_style_bg_color(button, lv_color_hex(HUD_KEY_PANEL), 0);
@@ -22,7 +25,7 @@ static void make_button(lv_obj_t *scr, int index, int row, lv_event_cb_t callbac
     lv_obj_t *label = lv_label_create(button);
     lv_obj_set_style_text_font(label, &font_muli_28, 0);
     lv_obj_set_style_text_color(label, lv_color_hex(HUD_INK), 0);
-    static const char *const names[] = {"Ambu", "Jiggler off", "Home", "Lock"};
+    static const char *const names[] = {"Ambu", "Jiggler off", "Home", "Lock", "Pomodoro"};
     lv_label_set_text(label, names[index]);
     if (index == 1) s_jiggler_label = label;
     lv_obj_center(label);
@@ -40,6 +43,7 @@ void app_screen_build(lv_event_cb_t on_button)
     lv_obj_set_size(s_menu, HUD_PANEL_DIA, HUD_PANEL_DIA);
     lv_obj_set_scrollable(s_menu, false);
     lv_obj_set_clickable(s_menu, false);
+    make_button(s_menu, 4, 0, on_button);
     make_button(s_menu, 3, 0, on_button);
     make_button(s_menu, 0, 1, on_button);
     make_button(s_menu, 1, 2, on_button);
@@ -50,13 +54,20 @@ void app_screen_build(lv_event_cb_t on_button)
     lv_obj_set_style_text_align(s_locked_label, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_center(s_locked_label);
     app_screen_set_jiggler(false);
+    pomo_view_build(scr, on_button);
     app_screen_set_locked(true);
 }
 void app_screen_set_locked(bool locked)
 {
+    pomo_view_show(false);
     if (locked) app_screen_set_lock_ticks(0);
     lv_obj_set_hidden(s_menu, locked);
     lv_obj_set_hidden(s_locked_label, !locked);
+}
+void app_screen_show_pomodoro(bool show)
+{
+    lv_obj_set_hidden(s_menu, show);
+    pomo_view_show(show);
 }
 void app_screen_set_lock_ticks(unsigned ticks)
 {
@@ -73,5 +84,5 @@ void app_screen_set_jiggler(bool enabled)
 }
 lv_obj_t *app_screen_string_button(int number)
 {
-    return number >= 1 && number <= 4 ? s_buttons[number - 1] : NULL;
+    return number >= 1 && number <= 5 ? s_buttons[number - 1] : pomo_view_button(number);
 }
