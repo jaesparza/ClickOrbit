@@ -41,9 +41,37 @@ static void test_four_round_cycle_and_restart(void)
         TEST_ASSERT_EQUAL_INT(24, p.minutes);
     }
 }
+static void test_count_and_skip(void)
+{
+    pomodoro_t p;
+    pomo_init(&p);
+    for (unsigned round = 1; round <= 4; round++) {
+        pomo_toggle(&p, 0);
+        pomo_toggle(&p, 100);
+        pomo_restart(&p);
+        TEST_ASSERT_EQUAL_UINT(round - 1, p.completed);
+        pomo_toggle(&p, 200);
+        TEST_ASSERT_TRUE(pomo_finish(&p, p.deadline_ms));
+        TEST_ASSERT_FALSE(pomo_finish(&p, p.deadline_ms));
+        TEST_ASSERT_EQUAL_UINT(round, p.completed);
+        if (round >= 2) pomo_toggle(&p, 0);
+        if (round == 3) pomo_toggle(&p, 100);
+        if (round == 4) {
+            TEST_ASSERT_EQUAL_INT(POMO_LONG_BREAK, p.phase);
+            pomo_clear_completed(&p);
+            TEST_ASSERT_EQUAL_UINT(4, p.round);
+        }
+        pomo_restart(&p);
+        TEST_ASSERT_EQUAL_INT(POMO_FOCUS, p.phase);
+        TEST_ASSERT_EQUAL_INT(POMO_READY, p.mode);
+        TEST_ASSERT_EQUAL_UINT(round % 4 + 1, p.round);
+    }
+    TEST_ASSERT_EQUAL_UINT(0, p.completed);
+}
 int main(void)
 {
     UNITY_BEGIN();
+    RUN_TEST(test_count_and_skip);
     RUN_TEST(test_dial_pause_resume);
     RUN_TEST(test_four_round_cycle_and_restart);
     return UNITY_END();

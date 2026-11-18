@@ -6,7 +6,7 @@
 
 static pomodoro_t session;
 static lv_obj_t *panel, *arc, *phase, *clock_label, *hint;
-static lv_obj_t *toggle, *menu, *reset, *toggle_text, *round_marks[4];
+static lv_obj_t *toggle, *menu, *reset, *toggle_text, *reset_text, *round_marks[4];
 static bool visible;
 static int last_seconds = -1;
 
@@ -19,18 +19,19 @@ static void render(bool controls)
     if (controls) {
         const char *name = session.phase == POMO_FOCUS ? "Focus" :
                            session.phase == POMO_BREAK ? "Short break" : "Long break";
-        unsigned round = (session.completed + (session.phase == POMO_FOCUS ? 0 : 3)) % 4 + 1;
+        bool is_break = session.phase != POMO_FOCUS;
         lv_label_set_text(phase, name);
         lv_color_t color = lv_color_hex(session.phase == POMO_FOCUS ? DIAL_ORANGE : DIAL_BREAK);
         lv_obj_set_style_text_color(phase, color, 0);
         lv_obj_set_style_arc_color(arc, color, LV_PART_INDICATOR);
         lv_obj_set_style_bg_color(toggle, color, 0);
         for (unsigned i = 0; i < 4; ++i)
-            lv_obj_set_style_bg_color(round_marks[i], i < round ? color : lv_color_hex(DIAL_TRACK), 0);
+            lv_obj_set_style_bg_color(round_marks[i], i < session.round ? color : lv_color_hex(DIAL_TRACK), 0);
         lv_label_set_text(toggle_text, session.mode == POMO_RUNNING ? "Pause" :
                           session.mode == POMO_PAUSED ? "Resume" : "Start");
-        lv_obj_set_hidden(reset, session.mode != POMO_PAUSED);
-        lv_obj_set_hidden(hint, session.mode != POMO_READY);
+        lv_label_set_text(reset_text, is_break ? "Skip break" : "Reset");
+        lv_obj_set_hidden(reset, !is_break && session.mode != POMO_PAUSED);
+        lv_obj_set_hidden(hint, is_break || session.mode != POMO_READY);
     }
     if (controls || seconds != last_seconds) {
         lv_label_set_text_fmt(clock_label, "%02d:%02d", seconds / 60, seconds % 60);
@@ -87,8 +88,8 @@ void pomo_view_build(lv_obj_t *parent, lv_event_cb_t cb)
     toggle = dial_button(panel, 146, 48, 0, 86, DIAL_ORANGE, POMO_TOGGLE, cb);
     toggle_text = dial_label(toggle, "Start", &font_muli_28, DIAL_BG, 0, 0);
     hint = dial_label(panel, "Turn to set minutes", LV_FONT_DEFAULT, DIAL_MUTED, 0, 132);
-    reset = dial_button(panel, 88, 44, 0, 135, DIAL_TILE, POMO_RESET, cb);
-    dial_label(reset, "Reset", &font_muli_20, DIAL_PAPER, 0, 0);
+    reset = dial_button(panel, 130, 44, 0, 135, DIAL_TILE, POMO_RESET, cb);
+    reset_text = dial_label(reset, "Reset", &font_muli_20, DIAL_PAPER, 0, 0);
     pomo_view_show(false);
     lv_timer_create(tick, 250, NULL);
 }
@@ -117,13 +118,13 @@ void pomo_view_toggle(void)
 }
 void pomo_view_restart(void)
 {
-    pomo_restart(&session);
+    if (!pomo_finish(&session, now_ms())) pomo_restart(&session);
     render(true);
 }
 lv_obj_t *pomo_view_button(int id)
 {
     if (id == POMO_TOGGLE) return toggle;
     if (id == POMO_MENU) return menu;
-    if (id == POMO_RESET && session.mode == POMO_PAUSED) return reset;
+    if (id == POMO_RESET && (session.phase != POMO_FOCUS || session.mode == POMO_PAUSED)) return reset;
     return NULL;
 }

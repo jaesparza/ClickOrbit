@@ -8,7 +8,7 @@ static void prepare(pomodoro_t *p, int minutes)
 }
 void pomo_init(pomodoro_t *p)
 {
-    *p = (pomodoro_t){.focus_minutes = 25};
+    *p = (pomodoro_t){.focus_minutes = 25, .round = 1};
     prepare(p, p->focus_minutes);
 }
 void pomo_adjust(pomodoro_t *p, int detent)
@@ -23,16 +23,25 @@ int64_t pomo_remaining(const pomodoro_t *p, int64_t now_ms)
     if (p->mode != POMO_RUNNING) return p->left_ms;
     return now_ms < p->deadline_ms ? p->deadline_ms - now_ms : 0;
 }
+static void next_focus(pomodoro_t *p)
+{
+    p->round = p->round % 4 + 1;
+    p->phase = POMO_FOCUS;
+    prepare(p, p->focus_minutes);
+}
+void pomo_clear_completed(pomodoro_t *p)
+{
+    p->completed = 0;
+}
 bool pomo_finish(pomodoro_t *p, int64_t now_ms)
 {
     if (p->mode != POMO_RUNNING || pomo_remaining(p, now_ms)) return false;
     if (p->phase == POMO_FOCUS) {
-        p->completed++;
-        p->phase = p->completed % 4 == 0 ? POMO_LONG_BREAK : POMO_BREAK;
+        if (p->completed < UINT32_MAX) p->completed++;
+        p->phase = p->round == 4 ? POMO_LONG_BREAK : POMO_BREAK;
         prepare(p, p->phase == POMO_LONG_BREAK ? 15 : 5);
     } else {
-        p->phase = POMO_FOCUS;
-        prepare(p, p->focus_minutes);
+        next_focus(p);
     }
     return true;
 }
@@ -49,5 +58,6 @@ void pomo_toggle(pomodoro_t *p, int64_t now_ms)
 }
 void pomo_restart(pomodoro_t *p)
 {
-    if (p->mode == POMO_PAUSED) prepare(p, p->minutes);
+    if (p->phase != POMO_FOCUS) next_focus(p);
+    else if (p->mode == POMO_PAUSED) prepare(p, p->focus_minutes);
 }
