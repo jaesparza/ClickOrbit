@@ -21,8 +21,11 @@ static void render(bool controls)
         if (controls) {
             lv_obj_set_style_text_font(total_label, session.completed > 999999 ? &font_muli_28 : &font_dial_64, 0);
             lv_label_set_text_fmt(total_label, "%u", (unsigned)session.completed);
-            lv_obj_set_hidden(clear, session.completed == 0);
-            lv_label_set_text(clear_text, confirm_clear ? "Confirm reset" : "Reset count");
+            lv_obj_set_state(clear, LV_STATE_DISABLED, session.completed == 0);
+            lv_obj_set_style_bg_color(clear, lv_color_hex(confirm_clear ? DIAL_RED : DIAL_TILE), 0);
+            lv_obj_set_style_text_color(clear_text,
+                lv_color_hex(session.completed ? DIAL_PAPER : DIAL_MUTED), 0);
+            lv_label_set_text(clear_text, confirm_clear ? "Confirm reset" : "Reset totals");
         }
         return;
     }
@@ -80,6 +83,7 @@ static void on_navigation(lv_event_t *e)
 {
     int id = (int)(intptr_t)lv_event_get_user_data(e);
     if (id == POMO_CLEAR) {
+        if (!session.completed) return;
         if (confirm_clear) {
             pomo_clear_completed(&session);
             pomo_store_save(0);
@@ -168,7 +172,7 @@ void pomo_view_build(lv_obj_t *parent, lv_event_cb_t cb)
     total_label = dial_label(stats, "0", &font_dial_64, DIAL_PAPER, 0, 4);
     dial_label(stats, "Full focus sessions", &font_muli_20, DIAL_MUTED, 0, 58);
     clear = dial_button(stats, 174, 46, 0, 114, DIAL_TILE, POMO_CLEAR, on_navigation);
-    clear_text = dial_label(clear, "Reset count", &font_muli_20, DIAL_PAPER, 0, 0);
+    clear_text = dial_label(clear, "Reset totals", &font_muli_20, DIAL_PAPER, 0, 0);
     pomo_view_show(false);
     lv_timer_create(tick, 250, NULL);
 }
