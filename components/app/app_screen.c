@@ -1,5 +1,6 @@
 #include "app_screen.h"
 #include "dial_style.h"
+#include "config_view.h"
 #include "pomodoro_view.h"
 
 static lv_obj_t *buttons[5], *jiggler_label, *switch_track, *switch_thumb;
@@ -66,11 +67,13 @@ void app_screen_build(lv_event_cb_t cb)
     tile(3, 1, 1, "Home", LV_SYMBOL_HOME, cb);
     build_lock(root);
     pomo_view_build(root, cb);
+    config_view_build(root, menu);
     app_screen_set_jiggler(false);
     app_screen_set_locked(true);
 }
 void app_screen_set_locked(bool locked)
 {
+    config_view_hide();
     pomo_view_show(false);
     if (locked) app_screen_set_lock_ticks(0);
     lv_obj_set_hidden(menu, locked);
@@ -98,5 +101,6 @@ void app_screen_set_jiggler(bool on)
 }
 lv_obj_t *app_screen_string_button(int number)
 {
+    if (config_view_visible()) return config_view_button(number);
     return number >= 1 && number <= 5 ? buttons[number - 1] : pomo_view_button(number);
 }

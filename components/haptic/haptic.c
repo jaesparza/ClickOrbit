@@ -6,11 +6,14 @@
 
 static const char *TAG = "haptic";
 
+static bool office_mode;
+
 #if BOARD_HAS_HAPTIC
 
 // DRV2605L registers (TI SLOS854).
 #define EFFECT_STRONG_CLICK 1
 #define EFFECT_ALERT_1S 16
+#define EFFECT_SOFT_PULSE 53  // TI DRV2605L library: pulsing strong, 60%
 #define WAIT_400_MS (0x80 | 40)  // waveform sequencer delay, in 10 ms units
 #define REG_MODE      0x01   // 0x00 = internal trigger, out of standby
 #define REG_RTP       0x02
@@ -114,7 +117,8 @@ static void play_note(lv_timer_t *timer)
         unsigned period = (10157 + hz / 2) / hz;
         if (reg_write(REG_OL_PERIOD, period) != ESP_OK) goto failed;
     }
-    if (reg_write(REG_RTP, hz ? JINGLE_DRIVE : 0) != ESP_OK) goto failed;
+    uint8_t drive = office_mode ? 64 : JINGLE_DRIVE;
+    if (reg_write(REG_RTP, hz ? drive : 0) != ESP_OK) goto failed;
     lv_timer_set_period(timer, ms);
     lv_timer_reset(timer);
     return;
@@ -147,7 +151,16 @@ void haptic_play(uint8_t effect)
     if (!start_effect(effect)) ESP_LOGW(TAG, "effect %u failed", (unsigned)effect);
 }
 
-void haptic_click(void) { haptic_play(EFFECT_STRONG_CLICK); }
+void haptic_click(void)
+{
+    if (!office_mode) haptic_play(EFFECT_STRONG_CLICK);
+}
+
+void haptic_set_office_mode(bool enabled)
+{
+    office_mode = enabled;
+    if (enabled && s_dev && stop_jingle()) reg_write(REG_GO, 0);
+}
 
 void haptic_timer_alarm(void)
 {
@@ -155,8 +168,11 @@ void haptic_timer_alarm(void)
     // Write consecutive sequencer slots. The driver plays the pattern autonomously.
     const uint8_t sequence[] = {REG_WAVESEQ1, EFFECT_ALERT_1S, WAIT_400_MS,
                                 EFFECT_ALERT_1S, WAIT_400_MS, EFFECT_ALERT_1S, 0};
+    const uint8_t quiet[] = {REG_WAVESEQ1, EFFECT_SOFT_PULSE, WAIT_400_MS, EFFECT_SOFT_PULSE, 0};
+    const uint8_t *pattern = office_mode ? quiet : sequence;
+    size_t length = office_mode ? sizeof(quiet) : sizeof(sequence);
     if (reg_write(REG_GO, 0) == ESP_OK &&
-        i2c_master_transmit(s_dev, sequence, sizeof(sequence), I2C_TMO_MS) == ESP_OK &&
+        i2c_master_transmit(s_dev, pattern, length, I2C_TMO_MS) == ESP_OK &&
         reg_write(REG_GO, 1) == ESP_OK) {
         ESP_LOGI(TAG, "timer alarm started");
     } else {
@@ -169,6 +185,7 @@ void haptic_timer_alarm(void)
 void haptic_init(i2c_master_bus_handle_t bus) { (void)bus; ESP_LOGI(TAG, "board has no haptic driver"); }
 void haptic_play(uint8_t effect) { (void)effect; }
 void haptic_click(void) {}
+void haptic_set_office_mode(bool enabled) { office_mode = enabled; }
 void haptic_jingle(void) {}
 void haptic_timer_alarm(void) {}
 

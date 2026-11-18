@@ -23,6 +23,7 @@ bool app_is_unlocked(void);
 // ui_lock(). Add one per new input; the console never reaches into this component's statics.
 void app_inject_knob(int steps);                   // real ring handler, one wheel tick per detent
 void app_inject_swipe(bool left);
+void app_inject_vertical_swipe(bool up);
 void app_inject_tap(void);                         // background tap: no-op
 void app_inject_hold(void);                        // hold the Pomodoro time to preview the motor jingle
 void app_inject_button(int number);               // real short-click on button 1, 2 or 3

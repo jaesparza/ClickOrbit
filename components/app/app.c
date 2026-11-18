@@ -2,6 +2,7 @@
 #include "app.h"
 #include "app_screen.h"
 #include "pomodoro_view.h"
+#include "config_view.h"
 #include "keyboard.h"
 #include "haptic.h"
 #include "ui.h"
@@ -65,6 +66,7 @@ static void on_knob_step(int direction)
         }
         return; // unlocking detents must never scroll the host
     }
+    if (config_view_visible()) return;
     if (pomo_view_visible()) {
         pomo_view_turn(direction);
         return;
@@ -76,6 +78,7 @@ void app_inject_knob(int steps)
     int direction = steps > 0 ? 1 : -1;
     for (int i = 0; i < (steps > 0 ? steps : -steps); ++i) on_knob_step(direction);
 }
+void app_inject_vertical_swipe(bool up) { config_view_swipe(up); }
 void app_inject_swipe(bool left) { pomo_view_swipe(left); }
 void app_inject_tap(void) {}
 void app_inject_hold(void) { pomo_view_preview_jingle(); }
