@@ -78,7 +78,7 @@ void app_inject_knob(int steps)
     for (int i = 0; i < (steps > 0 ? steps : -steps); ++i) on_knob_step(direction);
 }
 void app_inject_tap(void) {}
-void app_inject_hold(void) {}
+void app_inject_hold(void) { pomo_view_preview_jingle(); }
 void app_inject_button(int number)
 {
     lv_obj_t *button = app_screen_string_button(number);

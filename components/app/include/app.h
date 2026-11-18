@@ -23,7 +23,7 @@ bool app_is_unlocked(void);
 // ui_lock(). Add one per new input; the console never reaches into this component's statics.
 void app_inject_knob(int steps);                   // real ring handler, one wheel tick per detent
 void app_inject_tap(void);                         // background tap: no-op
-void app_inject_hold(void);                        // background hold: no-op
+void app_inject_hold(void);                        // hold the Pomodoro time to preview the motor jingle
 void app_inject_button(int number);               // real short-click on button 1, 2 or 3
 void app_inject_reset(void);                       // Jiggler off, last password reset
 void app_state_line(char *buf, size_t cap);        // "last=N jiggler=on/off moves=N"

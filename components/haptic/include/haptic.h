@@ -1,7 +1,6 @@
 #pragma once
 // haptic — DRV2605L LRA driver (I2C 0x5A on the touch bus). Depends on: board (address, capability
-// flag), esp_driver_i2c (the bus handle comes from ui_i2c_bus()). Every call is non-blocking and
-// safe from any task; before haptic_init() or without a chip every call is a silent no-op.
+// flag), esp_driver_i2c (the bus handle comes from ui_i2c_bus()). Playback calls run under the LVGL lock; before haptic_init() or without a chip every call is a silent no-op.
 #include <stdint.h>
 #include "driver/i2c_master.h"
 
@@ -18,3 +17,6 @@ void haptic_click(void);
 
 // Three one-second alert pulses separated by short rests.
 void haptic_timer_alarm(void);
+
+// Audition four pitched notes on the motor. A new haptic cue interrupts playback.
+void haptic_jingle(void);

@@ -2,6 +2,7 @@
 #include "haptic.h"
 #include "board.h"
 #include "esp_log.h"
+#include "lvgl.h"
 
 static const char *TAG = "haptic";
 
@@ -12,6 +13,13 @@ static const char *TAG = "haptic";
 #define EFFECT_ALERT_1S 16
 #define WAIT_400_MS (0x80 | 40)  // waveform sequencer delay, in 10 ms units
 #define REG_MODE      0x01   // 0x00 = internal trigger, out of standby
+#define REG_RTP       0x02
+#define REG_CONTROL3  0x1D
+#define REG_OL_PERIOD 0x20
+// Positive signed RTP sample, about 88% of the configured open-loop range.
+#define JINGLE_DRIVE 112
+#define CONTROL3_UNSIGNED_RTP (1u << 3)
+#define MODE_RTP      0x05
 #define REG_LIBRARY   0x03   // 6 = LRA library
 #define REG_WAVESEQ1  0x04
 #define REG_WAVESEQ2  0x05
@@ -61,9 +69,80 @@ static bool start_effect(uint8_t effect)
            reg_write(REG_GO, 1) == ESP_OK;
 }
 
+// The board connects the LRA driver over I2C. In open-loop RTP mode register
+// 0x20 sets the motor period in 98.46 us units (TI SLOS854D, table 29).
+static const struct { uint16_t hz, ms; } melody[] = {
+    {165, 160}, {0, 45}, {196, 160}, {0, 45}, {220, 240}, {0, 65}, {196, 320}
+};
+static lv_timer_t *note_timer;
+static size_t next_note;
+static uint8_t saved_control, saved_period;
+static bool restore_needed;
+
+static bool read_register(uint8_t reg, uint8_t *value)
+{
+    return i2c_master_transmit_receive(s_dev, &reg, 1, value, 1, I2C_TMO_MS) == ESP_OK;
+}
+
+static bool stop_jingle(void)
+{
+    if (note_timer) {
+        lv_timer_delete(note_timer);
+        note_timer = NULL;
+    }
+    if (!restore_needed) return true;
+    // Attempt every restore write even if one transfer fails.
+    bool ok = reg_write(REG_RTP, 0) == ESP_OK;
+    ok &= reg_write(REG_MODE, 0) == ESP_OK;
+    ok &= reg_write(REG_CONTROL3, saved_control) == ESP_OK;
+    ok &= reg_write(REG_OL_PERIOD, saved_period) == ESP_OK;
+    restore_needed = !ok;
+    if (!ok) ESP_LOGW(TAG, "jingle restore failed");
+    return ok;
+}
+
+static void play_note(lv_timer_t *timer)
+{
+    if (next_note == sizeof(melody) / sizeof(melody[0])) {
+        if (stop_jingle()) ESP_LOGI(TAG, "jingle complete");
+        return;
+    }
+    unsigned hz = melody[next_note].hz;
+    unsigned ms = melody[next_note++].ms;
+    if (hz) {
+        unsigned period = (10157 + hz / 2) / hz;
+        if (reg_write(REG_OL_PERIOD, period) != ESP_OK) goto failed;
+    }
+    if (reg_write(REG_RTP, hz ? JINGLE_DRIVE : 0) != ESP_OK) goto failed;
+    lv_timer_set_period(timer, ms);
+    lv_timer_reset(timer);
+    return;
+failed:
+    ESP_LOGW(TAG, "jingle note write failed");
+    stop_jingle();
+}
+
+void haptic_jingle(void)
+{
+    if (!s_dev || !stop_jingle()) return;
+    if (!read_register(REG_CONTROL3, &saved_control) ||
+        !read_register(REG_OL_PERIOD, &saved_period)) return;
+    note_timer = lv_timer_create(play_note, 1, NULL);
+    if (!note_timer) return;
+    restore_needed = true;
+    if (reg_write(REG_GO, 0) != ESP_OK || reg_write(REG_RTP, 0) != ESP_OK ||
+        reg_write(REG_CONTROL3, (saved_control & ~CONTROL3_UNSIGNED_RTP) | 1) != ESP_OK ||
+        reg_write(REG_MODE, MODE_RTP) != ESP_OK) {
+        stop_jingle();
+        return;
+    }
+    next_note = 0;
+    play_note(note_timer);
+}
+
 void haptic_play(uint8_t effect)
 {
-    if (!s_dev || !effect) return;
+    if (!s_dev || !effect || !stop_jingle()) return;
     if (!start_effect(effect)) ESP_LOGW(TAG, "effect %u failed", (unsigned)effect);
 }
 
@@ -71,7 +150,7 @@ void haptic_click(void) { haptic_play(EFFECT_STRONG_CLICK); }
 
 void haptic_timer_alarm(void)
 {
-    if (!s_dev) return;
+    if (!s_dev || !stop_jingle()) return;
     // Write consecutive sequencer slots. The driver plays the pattern autonomously.
     const uint8_t sequence[] = {REG_WAVESEQ1, EFFECT_ALERT_1S, WAIT_400_MS,
                                 EFFECT_ALERT_1S, WAIT_400_MS, EFFECT_ALERT_1S, 0};
@@ -89,6 +168,7 @@ void haptic_timer_alarm(void)
 void haptic_init(i2c_master_bus_handle_t bus) { (void)bus; ESP_LOGI(TAG, "board has no haptic driver"); }
 void haptic_play(uint8_t effect) { (void)effect; }
 void haptic_click(void) {}
+void haptic_jingle(void) {}
 void haptic_timer_alarm(void) {}
 
 #endif

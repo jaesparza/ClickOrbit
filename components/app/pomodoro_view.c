@@ -67,6 +67,17 @@ static void tick(lv_timer_t *timer)
     render(done);
 }
 
+static void preview_jingle(lv_event_t *event)
+{
+    (void)event;
+    haptic_jingle();
+}
+
+void pomo_view_preview_jingle(void)
+{
+    if (visible) lv_obj_send_event(clock_label, LV_EVENT_LONG_PRESSED, NULL);
+}
+
 void pomo_view_build(lv_obj_t *parent, lv_event_cb_t cb)
 {
     pomo_init(&session);
@@ -87,6 +98,8 @@ void pomo_view_build(lv_obj_t *parent, lv_event_cb_t cb)
     menu = button(-104, 110, POMO_MENU, "Menu", cb);
     phase = label(panel, -51, &font_muli_28);
     clock_label = label(panel, -4, &font_muli_28);
+    lv_obj_set_clickable(clock_label, true);
+    lv_obj_add_event_cb(clock_label, preview_jingle, LV_EVENT_LONG_PRESSED, NULL);
     lv_obj_set_style_transform_scale(clock_label, 400, 0);
     lv_obj_set_style_transform_pivot_x(clock_label, LV_PCT(50), 0);
     lv_obj_set_style_transform_pivot_y(clock_label, LV_PCT(50), 0);
