@@ -112,10 +112,18 @@ static void handle(char *line)
     if (!strcmp(line, "snap")) { do_snap(); return; }
     if (!strcmp(line, "state")) { reply_state(); return; }
 
+    int button = 0;
+    if (!strncmp(line, "button ", 7)) {
+        char *end;
+        long id = strtol(line + 7, &end, 10);
+        if (*end == 0 && id >= 1 && id <= 11) button = (int)id;
+    }
+    bool swipe = !strcmp(line, "swipe left") || !strcmp(line, "swipe right");
     if (!strcmp(line, "tap") || !strcmp(line, "hold") || !strcmp(line, "reset") ||
-        !strncmp(line, "knob ", 5) || (!strncmp(line, "button ", 7) && strlen(line) == 8 && line[7] >= '1' && line[7] <= '8')) {
+        !strncmp(line, "knob ", 5) || button || swipe) {
         if (!ui_lock(LOCK_MS)) { printf("> error lvgl lock\n"); fflush(stdout); return; }
-        if (line[0] == 'b')      app_inject_button(line[7] - '0');
+        if (button)              app_inject_button(button);
+        else if (swipe)          app_inject_swipe(!strcmp(line, "swipe left"));
         else if (line[0] == 't') app_inject_tap();
         else if (line[0] == 'h') app_inject_hold();
         else if (line[0] == 'r') app_inject_reset();

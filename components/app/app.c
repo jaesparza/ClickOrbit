@@ -77,6 +77,7 @@ void app_inject_knob(int steps)
     int direction = steps > 0 ? 1 : -1;
     for (int i = 0; i < (steps > 0 ? steps : -steps); ++i) on_knob_step(direction);
 }
+void app_inject_swipe(bool left) { pomo_view_swipe(left); }
 void app_inject_tap(void) {}
 void app_inject_hold(void) { pomo_view_preview_jingle(); }
 void app_inject_button(int number)
