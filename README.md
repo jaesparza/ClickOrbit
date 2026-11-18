@@ -7,6 +7,7 @@ My Knob is firmware for the Guition JC3636K518C K518, an ESP32-S3 device with a 
 - **Combination lock.** On boot, the screen shows a lock and a progress count. Turn the encoder five detents left, then five right to open the menu. An incorrect turn resets the sequence.
 - **USB keyboard.** Home provides two text buttons, **Ambu** and **Home**, which send compile-time strings over USB HID. The current demo strings are `Hello` and `World`.
 - **Mouse controls.** Turn the encoder to scroll. The **Jiggler** button enables a small horizontal mouse movement every five minutes.
+- **Jiggler interval.** Configuration offers 1, 5, 10, and 30 minute intervals, plus a clearly labeled two-second test mode. The selected interval is saved across reboots. Changing it restarts the wait until the next movement.
 - **Pomodoro timer.** Set a focus duration from 1 to 60 minutes with the encoder, then start or pause it by touch. It schedules five-minute breaks and a 15-minute break after every fourth focus session. Breaks can be skipped. A focus session counts as complete only after the full timer elapses.
 - **Session totals.** Open **Totals** from the timer screen to review completed focus sessions. The count persists across reboots and can be reset with a confirmation.
 - **Office mode.** Swipe up from the unlocked home screen to open Configuration. Office mode mutes button clicks and uses quieter motor alerts. The mode persists across reboots. **Test alert** plays the active alert profile.

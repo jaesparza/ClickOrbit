@@ -17,6 +17,7 @@ static QueueHandle_t s_queue;
 static atomic_bool s_caps_lock;
 static atomic_bool s_jiggler;
 static atomic_uint s_generation;
+static atomic_uint s_jiggler_interval_ms = JIGGLER_DEFAULT_INTERVAL_MS;
 static atomic_uint s_mouse_pairs;
 static atomic_int s_wheel_total;
 
@@ -27,6 +28,13 @@ void keyboard_set_jiggler(bool enabled)
 }
 
 bool keyboard_jiggler_enabled(void) { return atomic_load(&s_jiggler); }
+void keyboard_set_jiggler_interval_ms(uint32_t interval_ms)
+{
+    if (interval_ms < JIGGLER_TEST_INTERVAL_MS) return;
+    atomic_store(&s_jiggler_interval_ms, interval_ms);
+    atomic_fetch_add(&s_generation, 1);
+}
+uint32_t keyboard_jiggler_interval_ms(void) { return atomic_load(&s_jiggler_interval_ms); }
 unsigned keyboard_mouse_pairs(void) { return atomic_load(&s_mouse_pairs); }
 int keyboard_wheel_total(void) { return atomic_load(&s_wheel_total); }
 
@@ -96,7 +104,8 @@ static void keyboard_task(void *arg)
     jiggler_schedule_t schedule = {0};
     for (;;) {
         if (jiggler_due(&schedule, keyboard_jiggler_enabled(),
-                        atomic_load(&s_generation), esp_timer_get_time()) &&
+                        atomic_load(&s_generation), keyboard_jiggler_interval_ms(),
+                        esp_timer_get_time()) &&
             keyboard_jiggler_enabled()) jiggle();
         if (xQueueReceive(s_queue, &direction, pdMS_TO_TICKS(100)) != pdTRUE) continue;
         if (direction == 0) { jiggle(); continue; }

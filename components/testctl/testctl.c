@@ -116,7 +116,7 @@ static void handle(char *line)
     if (!strncmp(line, "button ", 7)) {
         char *end;
         long id = strtol(line + 7, &end, 10);
-        if (*end == 0 && id >= 1 && id <= 14) button = (int)id;
+        if (*end == 0 && id >= 1 && id <= 16) button = (int)id;
     }
     bool vertical = !strcmp(line, "swipe up") || !strcmp(line, "swipe down");
     bool swipe = !strcmp(line, "swipe left") || !strcmp(line, "swipe right");

@@ -1,7 +1,7 @@
 #pragma once
 #include "lvgl.h"
 
-enum { CONFIG_BACK = 12, CONFIG_OFFICE, CONFIG_PREVIEW };
+enum { CONFIG_BACK = 12, CONFIG_OFFICE, CONFIG_PREVIEW, CONFIG_INTERVAL_PREV, CONFIG_INTERVAL_NEXT };
 // All calls hold the LVGL lock. Build after loading preferences.
 void config_view_build(lv_obj_t *root, lv_obj_t *home);
 bool config_view_visible(void);

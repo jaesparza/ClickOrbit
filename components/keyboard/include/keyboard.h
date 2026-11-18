@@ -3,6 +3,7 @@
 // Initialize once before app/testctl. Queue calls are nonblocking from any task.
 // Only direction values are queued; no caller-owned pointers are retained.
 #include <stdbool.h>
+#include <stdint.h>
 
 void keyboard_init(void);
 // One positive detent types Hello; one negative detent types World.
@@ -14,6 +15,8 @@ int keyboard_wheel_total(void); // signed count of successfully submitted wheel 
 // Jiggler starts disabled. Enable schedules its first movement five minutes later.
 void keyboard_set_jiggler(bool enabled);
 bool keyboard_jiggler_enabled(void);
+void keyboard_set_jiggler_interval_ms(uint32_t interval_ms);
+uint32_t keyboard_jiggler_interval_ms(void);
 unsigned keyboard_mouse_pairs(void);
 // Dev console only: queue one right/left pair using the real mouse worker.
 bool keyboard_test_jiggle(void);

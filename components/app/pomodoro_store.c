@@ -4,10 +4,11 @@
 #include "freertos/queue.h"
 #include "freertos/task.h"
 #include "nvs.h"
+#define DEFAULT_JIGGLER_INTERVAL_MS UINT32_C(300000)
 
 static QueueHandle_t updates;
 static nvs_handle_t storage;
-typedef struct { uint32_t completed; uint8_t office; } preferences_t;
+typedef struct { uint32_t completed; uint32_t jiggler_interval_ms; uint8_t office; } preferences_t;
 static preferences_t latest; // UI-owned. The worker receives a copy.
 
 static void writer(void *arg)
@@ -19,6 +20,7 @@ static void writer(void *arg)
         for (;;) {
             esp_err_t err = nvs_set_u32(storage, "completed", snapshot.completed);
             if (err == ESP_OK) err = nvs_set_u8(storage, "office", snapshot.office);
+            if (err == ESP_OK) err = nvs_set_u32(storage, "jiggle_ms", snapshot.jiggler_interval_ms);
             if (err == ESP_OK) err = nvs_commit(storage);
             if (err == ESP_OK) break;
             ESP_LOGW("pomodoro", "saving preferences: %s", esp_err_to_name(err));
@@ -35,6 +37,11 @@ uint32_t pomo_store_init(void)
         if (err == ESP_ERR_NVS_NOT_FOUND) err = ESP_OK;
         if (err == ESP_OK) err = nvs_get_u8(storage, "office", &latest.office);
         if (err == ESP_ERR_NVS_NOT_FOUND) err = ESP_OK;
+        if (err == ESP_OK) err = nvs_get_u32(storage, "jiggle_ms", &latest.jiggler_interval_ms);
+        if (err == ESP_ERR_NVS_NOT_FOUND) {
+            latest.jiggler_interval_ms = DEFAULT_JIGGLER_INTERVAL_MS;
+            err = ESP_OK;
+        }
         if (err == ESP_OK) {
             updates = xQueueCreate(1, sizeof(latest));
             if (updates && xTaskCreate(writer, "pomo_save", 3072, NULL, 2, NULL) == pdPASS)
@@ -54,6 +61,12 @@ void pomo_store_save(uint32_t total)
     if (updates) xQueueOverwrite(updates, &latest);
 }
 bool pomo_store_office(void) { return latest.office != 0; }
+uint32_t pomo_store_jiggler_interval_ms(void) { return latest.jiggler_interval_ms; }
+void pomo_store_set_jiggler_interval_ms(uint32_t interval_ms)
+{
+    latest.jiggler_interval_ms = interval_ms;
+    if (updates) xQueueOverwrite(updates, &latest);
+}
 void pomo_store_set_office(bool enabled)
 {
     latest.office = enabled;
