@@ -9,8 +9,11 @@
 #include "esp_adc/adc_cali.h"
 #include "esp_adc/adc_cali_scheme.h"
 #include "board_jc3636k518c.h"
+#include "backlight.h"
 
 static lv_obj_t *panel, *home, *back, *toggle, *state, *preview;
+static lv_obj_t *dimming_panel, *dimming_button, *dimming_state;
+static bool test_dimmed;
 static lv_obj_t *interval_prev, *interval_next, *interval_label;
 static bool visible;
 static lv_obj_t *status_panel, *battery_label, *device_label, *connection_label;
@@ -45,6 +48,7 @@ static void display_mode(void)
 void config_view_hide(void)
 {
     lv_obj_set_hidden(panel, true);
+    if (dimming_panel) lv_obj_set_hidden(dimming_panel, true);
     visible = false;
 }
 
@@ -95,8 +99,12 @@ static void on_swipe(lv_event_t *event)
         else config_view_notify(true);
     } else if (target == status_panel && code == LV_EVENT_GESTURE_UP) {
         config_view_notify(false);
-    } else if (target == panel && code == LV_EVENT_GESTURE_DOWN) {
-        navigate(false);
+    } else if (target == panel && code == LV_EVENT_GESTURE_UP) {
+        lv_obj_set_hidden(panel, true);
+        lv_obj_set_hidden(dimming_panel, false);
+    } else if (target == dimming_panel && code == LV_EVENT_GESTURE_DOWN) {
+        lv_obj_set_hidden(dimming_panel, true);
+        lv_obj_set_hidden(panel, false);
     }
 }
 
@@ -111,6 +119,11 @@ static void on_action(lv_event_t *event)
 {
     int id = (int)(intptr_t)lv_event_get_user_data(event);
     if (id == CONFIG_BACK) navigate(false);
+    else if (id == CONFIG_DIM_TEST) {
+        test_dimmed = !test_dimmed;
+        backlight_set_percent(test_dimmed ? 20 : 80);
+        lv_label_set_text(dimming_state, test_dimmed ? "Dimmed" : "Normal");
+    }
     else if (id == CONFIG_PREVIEW) haptic_timer_alarm();
     else if (id == CONFIG_OFFICE) {
         bool enabled = !pomo_store_office();
@@ -136,6 +149,7 @@ void config_view_build(lv_obj_t *root, lv_obj_t *home_page)
     dial_label(home, LV_SYMBOL_DOWN "  Notifications", LV_FONT_DEFAULT, DIAL_MUTED, 0, -145);
     panel = dial_panel(root);
     watch_swipe(panel, LV_EVENT_GESTURE_DOWN);
+    watch_swipe(panel, LV_EVENT_GESTURE_UP);
     back = dial_button(panel, 110, 44, 0, -126, DIAL_TILE, CONFIG_BACK, on_action);
     dial_label(back, LV_SYMBOL_DOWN "  Menu", LV_FONT_DEFAULT, DIAL_PAPER, 0, 0);
     dial_label(panel, "Configuration", &font_muli_28, DIAL_PAPER, 0, -78);
@@ -154,6 +168,13 @@ void config_view_build(lv_obj_t *root, lv_obj_t *home_page)
     keyboard_set_jiggler_interval_ms(pomo_store_jiggler_interval_ms());
     display_mode();
     display_interval();
+    dimming_panel = dial_panel(root);
+    watch_swipe(dimming_panel, LV_EVENT_GESTURE_DOWN);
+    dial_label(dimming_panel, "Backlight test", &font_muli_28, DIAL_PAPER, 0, -78);
+    dimming_button = dial_button(dimming_panel, 210, 56, 0, 0, DIAL_TILE, CONFIG_DIM_TEST, on_action);
+    dial_label(dimming_button, "Toggle dim", &font_muli_20, DIAL_PAPER, 0, 0);
+    dimming_state = dial_label(dimming_panel, "Normal", &font_muli_20, DIAL_MUTED, 0, 66);
+    lv_obj_set_hidden(dimming_panel, true);
     status_panel = dial_panel(root);
     watch_swipe(status_panel, LV_EVENT_GESTURE_UP);
     watch_swipe(status_panel, LV_EVENT_GESTURE_DOWN);
@@ -192,5 +213,6 @@ lv_obj_t *config_view_button(int id)
     if (id == CONFIG_PREVIEW) return preview;
     if (id == CONFIG_INTERVAL_PREV) return interval_prev;
     if (id == CONFIG_INTERVAL_NEXT) return interval_next;
+    if (id == CONFIG_DIM_TEST) return dimming_button;
     return NULL;
 }
