@@ -1,5 +1,6 @@
 #include "pomodoro_view.h"
 #include "pomodoro.h"
+#include "pomodoro_store.h"
 #include "dial_style.h"
 #include "haptic.h"
 #include "esp_timer.h"
@@ -40,11 +41,19 @@ static void render(bool controls)
     }
 }
 
+static bool finish_if_due(int64_t now)
+{
+    uint32_t previous = session.completed;
+    if (!pomo_finish(&session, now)) return false;
+    if (session.completed != previous) pomo_store_save(session.completed);
+    haptic_timer_alarm();
+    return true;
+}
+
 static void tick(lv_timer_t *timer)
 {
     (void)timer;
-    bool done = pomo_finish(&session, now_ms());
-    if (done) haptic_timer_alarm();
+    bool done = finish_if_due(now_ms());
     render(done);
 }
 
@@ -62,6 +71,7 @@ void pomo_view_preview_jingle(void)
 void pomo_view_build(lv_obj_t *parent, lv_event_cb_t cb)
 {
     pomo_init(&session);
+    session.completed = pomo_store_init();
     panel = dial_panel(parent);
     arc = lv_arc_create(panel);
     lv_obj_set_size(arc, 334, 334);
@@ -109,8 +119,7 @@ void pomo_view_turn(int detent)
 void pomo_view_toggle(void)
 {
     int64_t now = now_ms();
-    if (pomo_finish(&session, now)) haptic_timer_alarm();
-    else {
+    if (!finish_if_due(now)) {
         pomo_toggle(&session, now);
         haptic_click();
     }
@@ -118,7 +127,7 @@ void pomo_view_toggle(void)
 }
 void pomo_view_restart(void)
 {
-    if (!pomo_finish(&session, now_ms())) pomo_restart(&session);
+    if (!finish_if_due(now_ms())) pomo_restart(&session);
     render(true);
 }
 lv_obj_t *pomo_view_button(int id)
