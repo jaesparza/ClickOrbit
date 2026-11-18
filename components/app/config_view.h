@@ -7,4 +7,5 @@ void config_view_build(lv_obj_t *root, lv_obj_t *home);
 bool config_view_visible(void);
 void config_view_hide(void);
 void config_view_swipe(bool up);
+void config_view_notify(bool open);
 lv_obj_t *config_view_button(int id);

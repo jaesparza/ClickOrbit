@@ -14,6 +14,7 @@
 #include "esp_log.h"
 
 static const char *TAG = "keyboard_ble";
+#define BLE_DEVICE_NAME "myAssistant"
 static atomic_bool s_connected;
 static atomic_uint s_advertising_data_ready;
 static esp_hidd_dev_t *s_device;
@@ -141,6 +142,11 @@ fail:
 bool keyboard_ble_connected(void)
 {
     return atomic_load(&s_connected);
+}
+
+const char *keyboard_ble_device_name(void)
+{
+    return BLE_DEVICE_NAME;
 }
 
 bool keyboard_ble_send_keyboard(uint8_t modifier, const uint8_t keys[6])
