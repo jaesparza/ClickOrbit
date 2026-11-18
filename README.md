@@ -2,6 +2,16 @@
 
 My Knob is firmware for the Guition JC3636K518C K518, an ESP32-S3 device with a 360 × 360 round touch display, rotary encoder, USB, and DRV2605L haptic motor. It combines USB keyboard and mouse controls with a Pomodoro timer.
 
+## On the dial
+
+Swipe down from Home to see the battery estimate and Bluetooth status. Tap the countdown to open the Pomodoro timer, then turn the ring to set a focus duration. Once the timer is running, you can return to Home and watch the countdown while using the keyboard shortcuts.
+
+| Home | Notifications | Focus timer |
+|:---:|:---:|:---:|
+| ![Home with a live countdown above the Work and Home shortcuts](docs/screenshots/11-home-running.png) | ![Notifications showing the battery estimate and Bluetooth connection state](docs/screenshots/05-notifications.png) | ![Paused focus timer with Resume and Reset controls](docs/screenshots/12-paused.png) |
+
+Captured over USB from the device’s 360 × 360 display. [View the full gallery](docs/screenshots/overview.png) or [browse the original screenshots](docs/screenshots/).
+
 ## Features
 
 - **Combination lock.** On boot, the screen shows a lock and a progress count. Turn the encoder five detents left, then five right to open the menu. An incorrect turn resets the sequence.
