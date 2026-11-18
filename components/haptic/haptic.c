@@ -64,7 +64,8 @@ void haptic_init(i2c_master_bus_handle_t bus)
 // Queue a single effect (sequence slot 2 = end marker) and trigger it.
 static bool start_effect(uint8_t effect)
 {
-    return reg_write(REG_WAVESEQ1, effect) == ESP_OK &&
+    return reg_write(REG_GO, 0) == ESP_OK &&
+           reg_write(REG_WAVESEQ1, effect) == ESP_OK &&
            reg_write(REG_WAVESEQ2, 0) == ESP_OK &&
            reg_write(REG_GO, 1) == ESP_OK;
 }

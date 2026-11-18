@@ -1,5 +1,6 @@
 #include "dial_style.h"
 #include "tokens.h"
+#include "haptic.h"
 
 static void place(lv_obj_t *o, int w, int h, int x, int y)
 {
@@ -40,6 +41,12 @@ lv_obj_t *dial_mark(lv_obj_t *parent, int w, int h, int x, int y, unsigned color
     return o;
 }
 
+static void button_pressed(lv_event_t *event)
+{
+    (void)event;
+    haptic_click();
+}
+
 lv_obj_t *dial_button(lv_obj_t *parent, int w, int h, int x, int y, unsigned color,
                       int id, lv_event_cb_t cb)
 {
@@ -49,6 +56,7 @@ lv_obj_t *dial_button(lv_obj_t *parent, int w, int h, int x, int y, unsigned col
     lv_obj_set_style_bg_opa(o, LV_OPA_COVER, 0);
     lv_obj_set_style_bg_opa(o, LV_OPA_70, LV_STATE_PRESSED);
     lv_obj_set_style_radius(o, 18, 0);
+    lv_obj_add_event_cb(o, button_pressed, LV_EVENT_PRESSED, NULL);
     lv_obj_add_event_cb(o, cb, LV_EVENT_SHORT_CLICKED, (void *)(intptr_t)id);
     return o;
 }

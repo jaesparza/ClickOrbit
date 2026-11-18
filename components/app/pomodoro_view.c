@@ -87,7 +87,6 @@ static void on_navigation(lv_event_t *e)
         if (confirm_clear) {
             pomo_clear_completed(&session);
             pomo_store_save(0);
-            haptic_click();
         }
         confirm_clear = !confirm_clear;
         render(true);
@@ -191,10 +190,7 @@ void pomo_view_turn(int detent)
 void pomo_view_toggle(void)
 {
     int64_t now = now_ms();
-    if (!finish_if_due(now)) {
-        pomo_toggle(&session, now);
-        haptic_click();
-    }
+    if (!finish_if_due(now)) pomo_toggle(&session, now);
     render(true);
 }
 void pomo_view_restart(void)

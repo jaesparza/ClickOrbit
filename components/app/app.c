@@ -46,7 +46,6 @@ static void on_button(lv_event_t *e)
         }
         s_last_string = number == 1 ? 1 : 2;
     }
-    haptic_click();
 }
 
 static void on_knob_step(int direction)
@@ -83,7 +82,9 @@ void app_inject_hold(void) { pomo_view_preview_jingle(); }
 void app_inject_button(int number)
 {
     lv_obj_t *button = app_screen_string_button(number);
-    if (button) lv_obj_send_event(button, LV_EVENT_SHORT_CLICKED, NULL);
+    if (!button || !lv_obj_is_visible(button) || lv_obj_has_state(button, LV_STATE_DISABLED)) return;
+    lv_obj_send_event(button, LV_EVENT_PRESSED, NULL);
+    lv_obj_send_event(button, LV_EVENT_SHORT_CLICKED, NULL);
 }
 void app_inject_reset(void)
 {
