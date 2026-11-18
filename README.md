@@ -1,6 +1,6 @@
-# My Knob
+# ClickOrbit
 
-My Knob is firmware for the Guition JC3636K518C K518, an ESP32-S3 device with a 360 × 360 round touch display, rotary encoder, USB, and DRV2605L haptic motor. It combines USB keyboard and mouse controls with a Pomodoro timer.
+ClickOrbit is firmware for the Guition JC3636K518C K518, an ESP32-S3 device with a 360 × 360 round touch display, rotary encoder, USB, and DRV2605L haptic motor. It combines USB keyboard and mouse controls with a Pomodoro timer.
 
 ## On the dial
 
