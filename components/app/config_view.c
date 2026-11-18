@@ -132,8 +132,8 @@ void config_view_build(lv_obj_t *root, lv_obj_t *home_page)
     home = home_page;
     watch_swipe(home, LV_EVENT_GESTURE_UP);
     watch_swipe(home, LV_EVENT_GESTURE_DOWN);
-    dial_label(home, LV_SYMBOL_UP "  Settings", LV_FONT_DEFAULT, DIAL_MUTED, 0, 136);
-    dial_label(home, LV_SYMBOL_DOWN "  Notifications", LV_FONT_DEFAULT, DIAL_MUTED, 0, 158);
+    dial_label(home, LV_SYMBOL_UP "  Settings", LV_FONT_DEFAULT, DIAL_MUTED, 0, 145);
+    dial_label(home, LV_SYMBOL_DOWN "  Notifications", LV_FONT_DEFAULT, DIAL_MUTED, 0, -145);
     panel = dial_panel(root);
     watch_swipe(panel, LV_EVENT_GESTURE_DOWN);
     back = dial_button(panel, 110, 44, 0, -126, DIAL_TILE, CONFIG_BACK, on_action);
